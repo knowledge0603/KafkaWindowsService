@@ -12,6 +12,8 @@ namespace KafkaService
 {
     public partial class Service1 : ServiceBase
     {
+        private Process kafkaProcess = null;
+
         public Service1()
         {
             InitializeComponent();
@@ -28,16 +30,33 @@ namespace KafkaService
 
         protected override void OnStop()
         {
-            // TODO: 在此处添加代码以执行停止服务所需的关闭操作。
-            //CloseKafka();
             KillProcessAndChildren(kafkaProcess.Id);
             wLog("kafka  Service Stop\n");
         }
 
-        private Process kafkaProcess=null;
+       
         private void startKafka(Object sender = null, EventArgs e = null)
         {
-            kafkaProcess = StartProcess(Constants.KafkaProcess);
+            //kafkaProcess = StartProcess(Constants.KafkaProcess);
+            wLog("startKafka start");
+            string volume= AppDomain.CurrentDomain.BaseDirectory.Substring(0, AppDomain.CurrentDomain.BaseDirectory.IndexOf(":"));
+            //string kafkaCommand = volume + ":\\kafka\\bin\\windows\\kafka-server-start.bat " + volume + ":\\kafka\\config\\server.properties";
+            kafkaProcess = new Process();
+            kafkaProcess.StartInfo.FileName = volume + ":\\kafka\\bin\\windows\\kafka-server-start.bat ";
+            kafkaProcess.StartInfo.Arguments = volume + ":\\kafka\\config\\server.properties";
+            kafkaProcess.StartInfo.CreateNoWindow = true;
+            kafkaProcess.StartInfo.UseShellExecute = false;
+            // Guardian to restart
+            kafkaProcess.EnableRaisingEvents = true;
+            kafkaProcess.Exited += new EventHandler(startKafka);
+            // The process output
+            kafkaProcess.StartInfo.RedirectStandardOutput = true;
+            kafkaProcess.StartInfo.RedirectStandardError = true;
+            kafkaProcess.OutputDataReceived += new DataReceivedEventHandler(MyProcOutputHandler);
+            kafkaProcess.ErrorDataReceived += new DataReceivedEventHandler(MyProcOutputHandler);
+            kafkaProcess.Start();
+            kafkaProcess.BeginOutputReadLine();
+            kafkaProcess.BeginErrorReadLine();
         }
 
         private static Process StartProcess(string command)
@@ -74,6 +93,13 @@ namespace KafkaService
                     // Process already exited.
                     wLog("ArgumentException",true);
                 }
+            }
+        }
+        private void MyProcOutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
+        {
+            if (!String.IsNullOrEmpty(outLine.Data))
+            {
+                wLog(outLine.Data, false);
             }
         }
         private static void wLog(string logStr, bool wTime = true)
