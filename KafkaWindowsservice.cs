@@ -12,34 +12,42 @@ namespace KafkaService
 {
     public partial class Service1 : ServiceBase
     {
+        #region declare
         private Process kafkaProcess = null;
+        #endregion
 
+        #region initialize 
         public Service1()
         {
             InitializeComponent();
         }
+        #endregion
 
+        #region Onstart service
         protected override void OnStart(string[] args)
         {
             string volume = AppDomain.CurrentDomain.BaseDirectory.Substring(0, AppDomain.CurrentDomain.BaseDirectory.IndexOf(":"));
             System.IO.Directory.SetCurrentDirectory(volume + ":\\kafka\\bin\\windows\\");
 
-            wLog("kafka Service Start");
+            WriteLog("kafka Service Start");
             startKafka();
         }
+        #endregion
 
+        #region stop service
         protected override void OnStop()
         {
             KillProcessAndChildren(kafkaProcess.Id);
-            wLog("kafka  Service Stop\n");
+            WriteLog("kafka  Service Stop\n");
         }
+        #endregion
 
-       
+        #region 
         private void startKafka(Object sender = null, EventArgs e = null)
         {
             //kafkaProcess = StartProcess(Constants.KafkaProcess);
-            wLog("startKafka start");
-            string volume= AppDomain.CurrentDomain.BaseDirectory.Substring(0, AppDomain.CurrentDomain.BaseDirectory.IndexOf(":"));
+            WriteLog("startKafka start");
+            string volume = AppDomain.CurrentDomain.BaseDirectory.Substring(0, AppDomain.CurrentDomain.BaseDirectory.IndexOf(":"));
             //string kafkaCommand = volume + ":\\kafka\\bin\\windows\\kafka-server-start.bat " + volume + ":\\kafka\\config\\server.properties";
             kafkaProcess = new Process();
             kafkaProcess.StartInfo.FileName = volume + ":\\kafka\\bin\\windows\\kafka-server-start.bat ";
@@ -58,7 +66,9 @@ namespace KafkaService
             kafkaProcess.BeginOutputReadLine();
             kafkaProcess.BeginErrorReadLine();
         }
+        #endregion
 
+        #region process call
         private static Process StartProcess(string command)
         {
             var processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
@@ -70,7 +80,9 @@ namespace KafkaService
 
             return Process.Start(processInfo);
         }
+        #endregion
 
+        #region kill process
         private static void KillProcessAndChildren(int pid)
         {
             using (var searcher = new ManagementObjectSearcher("Select * From Win32_Process Where ParentProcessID=" + pid))
@@ -91,18 +103,24 @@ namespace KafkaService
                 catch (ArgumentException)
                 {
                     // Process already exited.
-                    wLog("ArgumentException",true);
+                    WriteLog("ArgumentException", true);
                 }
             }
         }
+        #endregion
+
+        #region  process out put
         private void MyProcOutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if (!String.IsNullOrEmpty(outLine.Data))
             {
-                wLog(outLine.Data, false);
+                WriteLog(outLine.Data, false);
             }
         }
-        private static void wLog(string logStr, bool wTime = true)
+        #endregion
+
+        #region write log
+        private static void WriteLog(string logStr, bool wTime = true)
         {
             using (System.IO.StreamWriter sw = new System.IO.StreamWriter(AppDomain.CurrentDomain.BaseDirectory + "\\KafkaAutoService.log", true))
             {
@@ -110,6 +128,6 @@ namespace KafkaService
                 sw.WriteLine(timeStr + logStr);
             }
         }
-
+        #endregion
     }
 }
